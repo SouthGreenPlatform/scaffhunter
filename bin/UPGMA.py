@@ -434,7 +434,10 @@ def __main__():
 	file.close()
 	
 	#Doing the UPGMA
-	GROUP = pseudoUP(matrix, index_mat, info_scaff, options.type, matrix_mark, liste_ordre, dico_mark, dico_orient, dico_index, nb_mark)
+	if len(matrix) == 1:
+		GROUP = ['toto', [list(matrix.keys())[0]]]
+	else:
+		GROUP = pseudoUP(matrix, index_mat, info_scaff, options.type, matrix_mark, liste_ordre, dico_mark, dico_orient, dico_index, nb_mark)
 	
 	#Outputing ordonned markers
 	file = open(options.scaff)
