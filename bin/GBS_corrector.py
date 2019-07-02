@@ -146,7 +146,7 @@ def __main__():
 	for ind in header:
 		dico_ind_error[ind] = 0
 	
-	#On travail maintenant par scaffold
+	#Working per scaffold
 	liste_mark = []
 	sub_liste_mark = []
 	rev_dic_mark = {}

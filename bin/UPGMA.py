@@ -1,3 +1,4 @@
+#!/usr/local/bioinfo/python/2.7.9_build2/bin/python
 
 #
 #  Copyright 2014 CIRAD
@@ -250,12 +251,16 @@ def calcul_score_dif(MAT, ORDRE, MARK, ORIENT, DIC_INDEX, NB):
 def record_scaff(FILE, HEAD):
 	file = open(FILE)
 	dico = {}
+	MissingMark = set()
 	for line in file:
 		data = line.split()
 		if data:
 			if '#' in data[1]:
-				sys.exit('Please change scaffold names otherwise there will be somme problemes. Removing "#" will be enough')
-			if data[1] in dico:
+				sys.exit('Please change scaffold names otherwise there will be some problems. Removing "#" will be enough')
+			if not(data[0] in HEAD):
+				sys.stdout.write('Warning, marker '+data[0]+' is not in the matrix\n')
+				MissingMark.add(data[0])
+			elif data[1] in dico:
 				dico[data[1]][0].append(HEAD.index(data[0]))
 				dico[data[1]][1].append(data[0])
 			else:
@@ -263,7 +268,7 @@ def record_scaff(FILE, HEAD):
 				dico[data[1]][0].append(HEAD.index(data[0]))
 				dico[data[1]][1].append(data[0])
 	file.close()
-	return dico
+	return dico, MissingMark
 
 def appar(MAT, INDEX, SCAFF, GROUP):
 	dic = set()
@@ -294,7 +299,7 @@ def mat_mark2mat_scaff(SCAFF_FILE, MAT, OUT):
 	file = open(MAT)
 	index_mat = file.readline().split()[1:]
 	file.close()
-	scaffold = record_scaff(SCAFF_FILE, index_mat)
+	scaffold, MissingMark = record_scaff(SCAFF_FILE, index_mat)
 	
 	#Recording pairwise information
 	#on charge la matrice dans un dico
@@ -333,6 +338,8 @@ def mat_mark2mat_scaff(SCAFF_FILE, MAT, OUT):
 	for n in index_table:
 		OUT.write(n+'\t'+str(len(scaffold[n][0]))+'\t'+'\t'.join(dico_table[n])+'\n')
 	OUT.flush()
+	
+	return MissingMark
 
 def __main__():
 	#Parse Command Line
@@ -357,9 +364,9 @@ def __main__():
 	if options.mat == None:
 		sys.exit('--mat argument is missing')
 	
-	#Recording mean distance/ressemblance between scaffold
+	#Recording mean distance/resemblance between scaffold
 	temp1 = tempfile.NamedTemporaryFile()
-	mat_mark2mat_scaff(options.scaff, options.mat, temp1)
+	MissingMark = mat_mark2mat_scaff(options.scaff, options.mat, temp1)
 	temp1.flush()
 	
 	# Registering markers order
@@ -379,16 +386,17 @@ def __main__():
 	for line in file:
 		data = line.split()
 		if data:
-			nb_mark += 1
-			if data[1] in dico_mark:
-				dico_mark[data[1]].append(index_mat_mark.index(data[0]))
-				dico_index[index_mat_mark.index(data[0])] = data[0]
-			else:
-				dico_mark[data[1]] = []
-				dico_mark[data[1]].append(index_mat_mark.index(data[0]))
-				dico_index[index_mat_mark.index(data[0])] = data[0]
-				liste_ordre.append(data[1])
-				dico_orient[data[1]] = 'FWD'
+			if not(data[0] in MissingMark):
+				nb_mark += 1
+				if data[1] in dico_mark:
+					dico_mark[data[1]].append(index_mat_mark.index(data[0]))
+					dico_index[index_mat_mark.index(data[0])] = data[0]
+				else:
+					dico_mark[data[1]] = []
+					dico_mark[data[1]].append(index_mat_mark.index(data[0]))
+					dico_index[index_mat_mark.index(data[0])] = data[0]
+					liste_ordre.append(data[1])
+					dico_orient[data[1]] = 'FWD'
 	file.close()
 	nb_mark = float(nb_mark)
 	
@@ -445,11 +453,12 @@ def __main__():
 	for line in file:
 		data = line.split()
 		if data:
-			if data[1] in dico_mark:
-				dico_mark[data[1]].append(data[0])
-			else:
-				dico_mark[data[1]] = []
-				dico_mark[data[1]].append(data[0])
+			if not(data[0] in MissingMark):
+				if data[1] in dico_mark:
+					dico_mark[data[1]].append(data[0])
+				else:
+					dico_mark[data[1]] = []
+					dico_mark[data[1]].append(data[0])
 	outfile1 = open(options.out1,'w')
 	outfile = open(options.out2,'w')
 	for n in GROUP[1]:

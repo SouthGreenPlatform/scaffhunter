@@ -43,6 +43,7 @@ def __main__():
 	parser.add_option( '', '--table', dest='table', default=None, help='Table file containing in column 1: chromosome name, column 2: scaffold name, column 3: expected orientation (FWD or REV).')
 	parser.add_option( '', '--seq', dest='seq', default=None, help='Multifasta sequence file containing scaffolds.')
 	parser.add_option( '', '--unknown', dest='unknown', default='yes', help='Build an unknown chromosome with the remaining sequences: yes or no, [default: %default].')
+	parser.add_option( '', '--gpInUn', dest='gpInUn', default='y', help='Group the unanchored scaffolds into one chromosome (y or n) [default: %default].')
 	parser.add_option( '', '--out', dest='out', default='chromosomes.fasta', help='Fasta output file name.')
 	parser.add_option( '', '--agp', dest='agp', default='chromosomes.agp', help='agp output file name.')
 	(options, args) = parser.parse_args()
@@ -154,31 +155,44 @@ def __main__():
 	SeqIO.write(SeqRecord(Seq(sequence, generic_dna), id = chr, description=''),outfile, "fasta")
 	#all chromosomes have been constructed, now it is time to build unknown chromosome
 	if options.unknown == 'yes':
-		liste = []
-		for n in record_dict:
-			if not(n in dico):
-				liste.append([n, len(str(record_dict[n].seq))])
-		liste = sorted(liste, key=operator.itemgetter(1), reverse = True)
-		sequence = ''
-		debut = 0
-		i = 0
-		for n in liste:
-			if sequence == '':
-				sequence = str(record_dict[n[0]].seq)
-			else:
-				i += 1
+		if options.gpInUn == 'y':
+			liste = []
+			for n in record_dict:
+				if not(n in dico):
+					liste.append([n, len(str(record_dict[n].seq))])
+			liste = sorted(liste, key=operator.itemgetter(1), reverse = True)
+			sequence = ''
+			debut = 0
+			i = 0
+			for n in liste:
+				if sequence == '':
+					sequence = str(record_dict[n[0]].seq)
+				else:
+					i += 1
+					outfile2.write('chrUn_random\t'+str(debut+1)+'\t'+str(len(sequence))+'\t'+str(i)+'\tW\t'+scaff+'\t1\t'+str(len(sequence)-debut)+'\t+\n')
+					debut = len(sequence)
+					i += 1
+					sequence = sequence + 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
+					outfile2.write('chrUn_random\t'+str(debut+1)+'\t'+str(len(sequence))+'\t'+str(i)+'\tN\t100\tfragment\tno\n')
+					debut = len(sequence)
+					sequence = sequence + str(record_dict[n[0]].seq)
+				scaff = n[0]
+			i += 1
+			if sequence:
 				outfile2.write('chrUn_random\t'+str(debut+1)+'\t'+str(len(sequence))+'\t'+str(i)+'\tW\t'+scaff+'\t1\t'+str(len(sequence)-debut)+'\t+\n')
-				debut = len(sequence)
-				i += 1
-				sequence = sequence + 'NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN'
-				outfile2.write('chrUn_random\t'+str(debut+1)+'\t'+str(len(sequence))+'\t'+str(i)+'\tN\t100\tfragment\tno\n')
-				debut = len(sequence)
-				sequence = sequence + str(record_dict[n[0]].seq)
-			scaff = n[0]
-		i += 1
-		if sequence:
-			outfile2.write('chrUn_random\t'+str(debut+1)+'\t'+str(len(sequence))+'\t'+str(i)+'\tW\t'+scaff+'\t1\t'+str(len(sequence)-debut)+'\t+\n')
-			SeqIO.write(SeqRecord(Seq(sequence, generic_dna), id = 'chrUn_random', description=''),outfile, "fasta")
+				SeqIO.write(SeqRecord(Seq(sequence, generic_dna), id = 'chrUn_random', description=''),outfile, "fasta")
+		else:
+			liste = []
+			for n in record_dict:
+				if not(n in dico):
+					liste.append([n, len(str(record_dict[n].seq))])
+			liste = sorted(liste, key=operator.itemgetter(1), reverse = True)
+			for n in liste:
+				sequence = str(record_dict[n[0]].seq)
+				outfile2.write(n[0]+'\t1\t'+str(len(sequence))+'\t1\tW\t'+n[0]+'\t1\t'+str(len(sequence))+'\t+\n')
+				SeqIO.write(SeqRecord(Seq(sequence, generic_dna), id = n[0], description=''),outfile, "fasta")
+			
+			
 	outfile.close()
 	outfile2.close()
 
