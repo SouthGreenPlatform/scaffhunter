@@ -21,7 +21,7 @@
 #
 
 
-import optparse, os, shutil, subprocess, sys, tempfile, fileinput, ConfigParser, operator, time
+import optparse, os, shutil, subprocess, sys, tempfile, fileinput, operator, time
 
 
 def cherche_best(DICO):
@@ -35,34 +35,80 @@ def cherche_best(DICO):
 			BEST = 'Un'
 	return BEST
 
-def correct(HEADER, LISTE_MARK, DICO_IND_ERROR, DICO_MARK_ERROR, DICO, FENETRE):
+def cherche_best_No_Un(DICO):
+	BEST = 'Un'
+	num = 0
+	for n in DICO:
+		if n != 'Un' and n != '--':
+			if DICO[n] > num:
+				BEST = n
+				num = DICO[n]
+			elif DICO[n] == num:
+				BEST = 'Un'
+	return BEST
+
+def correct(HEADER, LISTE_MARK, DICO_IND_ERROR, DICO_MARK_ERROR, DICO, FENETRE, STARTOREND, COUNTUN, PRECCOR):
+	
+	if PRECCOR != 'y':
+		NEW_DICO = {}
+		for n in DICO:
+			NEW_DICO[n] = list(DICO[n])
+	
 	#We correct by individuals
 	for ind in HEADER:
 		for mark in LISTE_MARK:
-			if LISTE_MARK.index(mark) < FENETRE:
-				dico_var = {}
-				for n in LISTE_MARK[0:(2*FENETRE)+1]:
-					if DICO[n][HEADER.index(ind)] in dico_var:
-						dico_var[DICO[n][HEADER.index(ind)]] = dico_var[DICO[n][HEADER.index(ind)]] + 1
+			
+			# It is marker at the beginning of a chromosome before the half windows number
+			if LISTE_MARK.index(mark) < FENETRE:	
+				if STARTOREND == 'y':
+					dico_var = {}
+					for n in LISTE_MARK[0:(2*FENETRE)+1]:
+						if DICO[n][HEADER.index(ind)] in dico_var:
+							dico_var[DICO[n][HEADER.index(ind)]] = dico_var[DICO[n][HEADER.index(ind)]] + 1
+						else:
+							dico_var[DICO[n][HEADER.index(ind)]] = 1
+					
+					if COUNTUN == 'y':
+						best = cherche_best(dico_var)
 					else:
-						dico_var[DICO[n][HEADER.index(ind)]] = 1
-				best = cherche_best(dico_var)
-				if best != DICO[mark][HEADER.index(ind)] and best != 'Un' and best != '--':
-					DICO_MARK_ERROR[mark] = DICO_MARK_ERROR[mark] + 1
-					DICO_IND_ERROR[ind] = DICO_IND_ERROR[ind] + 1
-					DICO[mark][HEADER.index(ind)] = best
-			elif LISTE_MARK.index(mark) >= (len(LISTE_MARK) - FENETRE):
-				dico_var = {}
-				for n in LISTE_MARK[((len(LISTE_MARK)-2*FENETRE)-1):len(LISTE_MARK)]:
-					if DICO[n][HEADER.index(ind)] in dico_var:
-						dico_var[DICO[n][HEADER.index(ind)]] = dico_var[DICO[n][HEADER.index(ind)]] + 1
+						best = cherche_best_No_Un(dico_var)
+					
+					if best != DICO[mark][HEADER.index(ind)] and best != 'Un' and best != '--':
+						DICO_MARK_ERROR[mark] = DICO_MARK_ERROR[mark] + 1
+						DICO_IND_ERROR[ind] = DICO_IND_ERROR[ind] + 1
+						if PRECCOR != 'y':
+							NEW_DICO[mark][HEADER.index(ind)] = best
+						else:
+							DICO[mark][HEADER.index(ind)] = best
+				else:
+					pass
+			
+			# It is marker at the end of a chromosome after the half windows number from the end
+			elif LISTE_MARK.index(mark) >= (len(LISTE_MARK) - FENETRE):	
+				if STARTOREND == 'y':
+					dico_var = {}
+					for n in LISTE_MARK[((len(LISTE_MARK)-2*FENETRE)-1):len(LISTE_MARK)]:
+						if DICO[n][HEADER.index(ind)] in dico_var:
+							dico_var[DICO[n][HEADER.index(ind)]] = dico_var[DICO[n][HEADER.index(ind)]] + 1
+						else:
+							dico_var[DICO[n][HEADER.index(ind)]] = 1
+					
+					if COUNTUN == 'y':
+						best = cherche_best(dico_var)
 					else:
-						dico_var[DICO[n][HEADER.index(ind)]] = 1
-				best = cherche_best(dico_var)
-				if best != DICO[mark][HEADER.index(ind)] and best != 'Un' and best != '--':
-					DICO_MARK_ERROR[mark] = DICO_MARK_ERROR[mark] + 1
-					DICO_IND_ERROR[ind] = DICO_IND_ERROR[ind] + 1
-					DICO[mark][HEADER.index(ind)] = best
+						best = cherche_best_No_Un(dico_var)
+					
+					if best != DICO[mark][HEADER.index(ind)] and best != 'Un' and best != '--':
+						DICO_MARK_ERROR[mark] = DICO_MARK_ERROR[mark] + 1
+						DICO_IND_ERROR[ind] = DICO_IND_ERROR[ind] + 1
+						if PRECCOR != 'y':
+							NEW_DICO[mark][HEADER.index(ind)] = best
+						else:
+							DICO[mark][HEADER.index(ind)] = best
+				else:
+					pass
+			
+			# It is a marker in chromosome nor at the beginning or at the end
 			else:
 				dico_var = {}
 				for n in LISTE_MARK[LISTE_MARK.index(mark)-FENETRE:LISTE_MARK.index(mark)+FENETRE+1]:
@@ -70,12 +116,24 @@ def correct(HEADER, LISTE_MARK, DICO_IND_ERROR, DICO_MARK_ERROR, DICO, FENETRE):
 						dico_var[DICO[n][HEADER.index(ind)]] = dico_var[DICO[n][HEADER.index(ind)]] + 1
 					else:
 						dico_var[DICO[n][HEADER.index(ind)]] = 1
-				best = cherche_best(dico_var)
+					
+				if COUNTUN == 'y':
+					best = cherche_best(dico_var)
+				else:
+					best = cherche_best_No_Un(dico_var)
+					
 				if best != DICO[mark][HEADER.index(ind)] and best != 'Un' and best != '--':
 					DICO_MARK_ERROR[mark] = DICO_MARK_ERROR[mark] + 1
 					DICO_IND_ERROR[ind] = DICO_IND_ERROR[ind] + 1
-					DICO[mark][HEADER.index(ind)] = best
-	return [DICO_IND_ERROR, DICO_MARK_ERROR, DICO]
+					if PRECCOR != 'y':
+						NEW_DICO[mark][HEADER.index(ind)] = best
+					else:
+						DICO[mark][HEADER.index(ind)] = best
+	
+	if PRECCOR != 'y':
+		return [DICO_IND_ERROR, DICO_MARK_ERROR, NEW_DICO]
+	else:
+		return [DICO_IND_ERROR, DICO_MARK_ERROR, DICO]
 	
 
 def __main__():
@@ -94,10 +152,15 @@ def __main__():
 	parser.add_option( '', '--table', dest='table', default=None, help='The table file containing phased data. col 1 : markers name, col 2, 3, 4 necessary but not used by the program, col 5 to end : individual genotypes. First line contain header. Redundant names (markers and individuals) are not allowed')
 	parser.add_option( '', '--fen', dest='fen', default="10=3", help='Minimal marker number in a linkage group/scaffold/reference sequence to apply correction followed by half window size. Both values should be separated by "=". If different classes, couple can be repeated and separated by "=". [default: %default]')
 	parser.add_option( '', '--order', dest='order', default=None, help='A table file with markers names in column 1 and scaffold they match with in column2. Markers should be ordered first on linkage group/scaffold/reference sequence and second on markers position on linkage group/scaffold/reference sequence')
-	parser.add_option( '', '--suspect', dest='suspect', default=10, help='The minimal number of correction in a marker to consider this marker as supect. [default: %default]')
+	parser.add_option( '', '--suspect', dest='suspect', default=10, help='The minimal number of correction in a marker to consider this marker as suspect. [default: %default]')
 	parser.add_option( '', '--nr', dest='nr', default='corrected_non_redunddant_mark.tab', help='The name of the corrected non redundant output file. [default: %default]')
 	parser.add_option( '', '--cor', dest='cor', default='corrected_mark.tab', help='The name of the corrected output file. [default: %default]')
 	parser.add_option( '', '--Nosu', dest='Nosu', default='filtered_mark.tab', help='The name of the output file containing the non suspect markers. [default: %default]')
+	parser.add_option( '', '--rmError', dest='rmError', default='n', help='Print number of correction performed on the file (y or n). [default: %default]')
+	parser.add_option( '', '--corSE', dest='corSE', default='y', help='Correct markers at start and end of chromosome in region of the half window size (y or n). [default: %default]')
+	parser.add_option( '', '--cun', dest='cun', default='y', help='Count unknown genotype for attribution of best probable allele (y or n). [default: %default]')
+	parser.add_option( '', '--preccor', dest='preccor', default='y', help='Use previously corrected markers to perform correction (y or n). i.e use marker directly before the marker under correction which have already been corrected. [default: %default]')
+	parser.add_option( '', '--prefix', dest='prefix', default=False, help='Prefix for the output files. If this option is passed, --nr, --cor and --Nosu argument are not used. [default: %default]')
 	(options, args) = parser.parse_args()
 	
 	
@@ -105,6 +168,16 @@ def __main__():
 		sys.exit('--table argument is missing')
 	if options.order == None:
 		sys.exit('--order argument is missing')
+	
+	if options.prefix:
+		OUTNR = options.prefix+'_CorNr.tab'
+		OUTCOR = options.prefix+'_Cor.tab'
+		OUTNOSU = options.prefix+'_NoSu.tab'
+	else:
+		OUTNR = options.nr
+		OUTCOR = options.cor
+		OUTNOSU = options.Nosu
+	
 	
 	susp = int(options.suspect)
 	
@@ -116,9 +189,8 @@ def __main__():
 		del toto[0]
 	
 	fenetre.sort(key=operator.itemgetter(0), reverse=True)
-	# print fenetre
 	
-	#recording data in dictionnary
+	#recording data in dictionary
 	dico = {}
 	dico_3_col = {}
 	dico_mark_error = {}
@@ -131,7 +203,7 @@ def __main__():
 	header = line.split()[4:]
 	head_3_col = line.split()[1:4]
 	liste_mark = []
-	print ('Your file contain '+str(taille_line-4)+' individuals')
+	print ('Your file contains '+str(taille_line-4)+' individuals')
 	for line in file:
 		data = line.split()
 		if data:
@@ -145,6 +217,8 @@ def __main__():
 			dico_mark_error[data[0]] = 0
 	for ind in header:
 		dico_ind_error[ind] = 0
+	
+	file.close()
 	
 	#Working per scaffold
 	liste_mark = []
@@ -169,8 +243,8 @@ def __main__():
 			else:
 				for k in fenetre:
 					if k[0] <= len(sub_liste_mark):
-						print scaffold, len(sub_liste_mark), k
-						resultat = correct(header, sub_liste_mark, dico_ind_error, dico_mark_error, dico, k[1])
+						print (scaffold, len(sub_liste_mark), k)
+						resultat = correct(header, sub_liste_mark, dico_ind_error, dico_mark_error, dico, k[1], options.corSE, options.cun, options.preccor)
 						dico_ind_error = resultat[0]
 						dico_mark_error = resultat[1]
 						dico = resultat[2]
@@ -183,35 +257,37 @@ def __main__():
 	if sub_liste_mark:
 		for k in fenetre:
 			if k[0] <= len(sub_liste_mark):
-				print scaffold, len(sub_liste_mark), k
-				resultat = correct(header, sub_liste_mark, dico_ind_error, dico_mark_error, dico, k[1])
+				print (scaffold, len(sub_liste_mark), k)
+				resultat = correct(header, sub_liste_mark, dico_ind_error, dico_mark_error, dico, k[1], options.corSE, options.cun, options.preccor)
 				dico_ind_error = resultat[0]
 				dico_mark_error = resultat[1]
 				dico = resultat[2]
 				break
 				
 	#now we print output
-	outfile_nr = open(options.nr,'w')
-	outfile = open(options.cor,'w')
+	outfile_nr = open(OUTNR,'w')
+	outfile = open(OUTCOR,'w')
 	outfile.write('marker')
 	outfile_nr.write('marker')
 	for n in head_3_col:
 		outfile.write('\t'+n)
 		outfile_nr.write('\t'+n)
-	outfile.write('\tmark_error')
-	outfile_nr.write('\tmark_error')
+	if options.rmError != 'y':
+		outfile.write('\tmark_error')
+		outfile_nr.write('\tmark_error')
 	for n in header:
 		outfile.write('\t'+n)
 		outfile_nr.write('\t'+n)
 	outfile.write('\n')
-	outfile.write('ind_error\t--\t-\t-\t-')
 	outfile_nr.write('\n')
-	outfile_nr.write('ind_error\t--\t-\t-\t-')
-	for n in header:
-		outfile.write('\t'+str(dico_ind_error[n]))
-		outfile_nr.write('\t'+str(dico_ind_error[n]))
-	outfile.write('\n')
-	outfile_nr.write('\n')
+	if options.rmError != 'y':
+		outfile_nr.write('ind_error\t--\t-\t-\t-')
+		outfile.write('ind_error\t--\t-\t-\t-')
+		for n in header:
+			outfile.write('\t'+str(dico_ind_error[n]))
+			outfile_nr.write('\t'+str(dico_ind_error[n]))
+		outfile.write('\n')
+		outfile_nr.write('\n')
 	
 	mark_prec = []
 	scaf_prec = ''
@@ -226,13 +302,19 @@ def __main__():
 			scaf_prec = rev_dic_mark[mark]
 			for n in dico_3_col[mark]:
 				outfile_nr.write('\t'+n)
-			outfile_nr.write('\t'+str(dico_mark_error[mark]))
+			
+			if options.rmError != 'y':
+				outfile_nr.write('\t'+str(dico_mark_error[mark]))
+			
 			for ind in header:
 				outfile_nr.write('\t'+dico[mark][header.index(ind)])
 			outfile_nr.write('\n')
 		for n in dico_3_col[mark]:
 			outfile.write('\t'+n)
-		outfile.write('\t'+str(dico_mark_error[mark]))
+		
+		if options.rmError != 'y':
+			outfile.write('\t'+str(dico_mark_error[mark]))
+		
 		for ind in header:
 			outfile.write('\t'+dico[mark][header.index(ind)])
 		outfile.write('\n')
@@ -240,7 +322,7 @@ def __main__():
 	outfile_nr.close()
 	
 	#Now we print the original file with suspect markers removed
-	outfile = open(options.Nosu,'w')
+	outfile = open(OUTNOSU,'w')
 	file = open(options.table)
 	line = file.readline()
 	outfile.write(line)
