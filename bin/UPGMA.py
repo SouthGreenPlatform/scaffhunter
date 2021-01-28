@@ -1,4 +1,5 @@
-#!/usr/local/bioinfo/python/2.7.9_build2/bin/python
+#!/usr/bin/env python
+# -*- coding:Utf-8 -*-
 
 #
 #  Copyright 2014 CIRAD
