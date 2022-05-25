@@ -119,7 +119,7 @@ def __main__():
 			# Starts threads
 			for process in liste_process:
 				process.start()
-			# This blocks the calling thread until the thread whose join() method is called is terminated.
+			# In this blocks the calling thread until the thread whose join() method is called is terminated.
 			for process in liste_process:
 				process.join()
 			#the processes are done
