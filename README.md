@@ -32,7 +32,7 @@ How to cite
 Martin G, Baurens F-C, Droc G, Rouard M, Cenci A, Kilian A, Hastie A, Doležel J, Aury J-M, Alberti A, et al. 2016. **Improvement of the banana “Musa acuminata” reference sequence using NGS data and semi-automated bioinformatics methods.** *BMC Genomics 17:1–12* https://bmcgenomics.biomedcentral.com/articles/10.1186/s12864-016-2579-4
 
 
-Author of scripts
+Referring person of the deposit
 -----------
 
 Guillaume Martin (CIRAD)
